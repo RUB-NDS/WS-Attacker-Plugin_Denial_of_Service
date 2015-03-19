@@ -18,36 +18,43 @@
  */
 package wsattacker.plugin.dos.dosExtension.attackRunnables;
 
-import wsattacker.plugin.dos.dosExtension.mvc.model.AttackModel;
+import org.jfree.chart.JFreeChart;
+
+import wsattacker.plugin.dos.dosExtension.chart.ChartObject;
+import wsattacker.plugin.dos.dosExtension.result.ResultGenerator;
 
 /**
- * Siehe Buch S. 217 Objekt dieser Klasse wird einmal erzeugt und dann immer wieder an GUI-EventQueue übergeben! Was
- * passiert wenn ich ein Objekt der GUI-EventQueue übergebe?? wird automatisch run() ausgeführt?? -> JA, siehe Doko ->
- * public static void invokeLater(Runnable runnable) Causes runnable to have its run method called in the dispatch
- * thread of the EventQueue. This will happen after all pending events are processed. Ist ein Thread.. Lebt nur solange
- * wie run() ausgeführt wird... hier also nur SEHR kurz!! -> einmal Gui updaten = Tot!
+ * redraws chart in attack result GUI should be called via "spinner change"-event
  */
-public class UpdateAttackStateRunnable
+public class RedrawChartRunnable
     implements Runnable
 {
-    private AttackModel model;
+    private ResultGenerator resultGenerator;
 
-    private int state;
+    private int newIntervalLengthReport;
 
     // Constructor
-    public UpdateAttackStateRunnable( AttackModel model, int state )
+    public RedrawChartRunnable( ResultGenerator resultGenerator, int newIntervalLengthReport )
     {
-        this.model = model;
-        this.state = state;
+        this.resultGenerator = resultGenerator;
+        this.newIntervalLengthReport = newIntervalLengthReport;
     }
 
+    // führe Thread aus!
     @Override
     public void run()
     {
         // update Model + GUI
         // - executed in EDT-context - don't have to worry about syncronization
         // - Warning: has to run in very short period - otherwise might block
-        // GUI
-        this.model.setCurrentAttackState( this.state );
+        // GUI.
+        resultGenerator.getAttackModel().setIntervalLengthReport( ( newIntervalLengthReport * 1000 ) );
+        resultGenerator.getAttackModel().generateResults();
+        ChartObject chartObject = new ChartObject( resultGenerator.getAttackModel() );
+        JFreeChart chart = chartObject.createOverlaidChart();
+        resultGenerator.getJChartPanel().setChart( chart );
+        resultGenerator.getJChartPanel().repaint();
+        // model.getAttackResultJFrame().repaint();
+        System.out.println( "updated Model + Chart-GUI" );
     }
 }
